@@ -1,0 +1,204 @@
+import UIKit
+import SwiftUI
+
+public final class UITableViewWrapperController<Item: TableItem, ItemView: View>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable {
+    
+    private let CELL_IDENTIFIER = "UITableViewWrapperItemCell"
+    
+    private let onActionUsed: (IndexPath, Item, TableItemAction) -> Void
+    
+    private var tableView: UITableView!
+    
+    private let cache: TableItemsCache<Item, ItemView>
+    
+    init(itemViewBuilder: @escaping (Item) -> ItemView,
+         onActionUsed: @escaping (IndexPath, Item, TableItemAction) -> Void) {
+        
+        cache = TableItemsCache(itemViewBuilder: itemViewBuilder)
+        
+        self.onActionUsed = onActionUsed
+        
+        super.init(nibName: nil,
+                   bundle: nil)
+        
+        cache.onContentSizeChanged = { [weak self] in
+            self?.layoutCells()
+        }
+        
+        createTableView()
+    }
+    
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+    
+    func setItems(_ items: [Item]) {
+        
+        if cache.noItems {
+            cache.set(items)
+            tableView?.reloadData()
+        } else if let tableView = tableView {
+            let (insertedIndecies, deletedIndecies) = cache.updateWith(newItems: items)
+            
+            #if DEBUG
+            print("Deletions", deletedIndecies)
+            print("Insertions", insertedIndecies)
+            #endif
+            
+            let deletedIndexPaths = deletedIndecies.map {
+                IndexPath(row: $0, section: .zero)
+            }
+            let insertedIndexPaths = insertedIndecies.map {
+                IndexPath(row: $0, section: .zero)
+            }
+            
+            tableView.performBatchUpdates {
+                tableView.deleteRows(at: deletedIndexPaths,
+                                     with: .middle)
+                tableView.insertRows(at: insertedIndexPaths,
+                                     with: .middle)
+            }
+        }
+    }
+    
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        tableView?.frame = view.bounds
+    }
+    
+    // MARK: UITableViewDelegate
+    public func tableView(_ tableView: UITableView,
+                          estimatedHeightForRowAt indexPath: IndexPath) -> CGFloat {
+        cache.getHeightForItem(at: indexPath.row)
+    }
+    public func tableView(_ tableView: UITableView,
+                          heightForRowAt indexPath: IndexPath) -> CGFloat {
+        cache.getHeightForItem(at: indexPath.row)
+    }
+    
+    public func tableView(_ tableView: UITableView,
+                          leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        
+        let item = cache.getItem(at: indexPath.row)
+        
+        var contextualActions = [UIContextualAction]()
+        
+        for trailingAction in item.leadingActions {
+            let contextualAction = createContextualAction(indexPath: indexPath,
+                                                          item: item,
+                                                          itemAction: trailingAction)
+            contextualActions.append(contextualAction)
+        }
+        
+        let configuration = UISwipeActionsConfiguration(actions: contextualActions)
+        configuration.performsFirstActionWithFullSwipe = false
+        return configuration
+    }
+    
+    public func tableView(_ tableView: UITableView,
+                          trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let item = cache.getItem(at: indexPath.row)
+        
+        var contextualActions = [UIContextualAction]()
+        
+        if let deleteAction = item.deleteAction {
+            deleteAction.markAsDeleteAction()
+            let deleteContextualAction = createContextualAction(indexPath: indexPath,
+                                                                item: item,
+                                                                itemAction: deleteAction)
+            contextualActions.append(deleteContextualAction)
+        }
+        
+        for trailingAction in item.trailingActions {
+            let contextualAction = createContextualAction(indexPath: indexPath,
+                                                          item: item,
+                                                          itemAction: trailingAction)
+            contextualActions.append(contextualAction)
+        }
+        
+        let configuration = UISwipeActionsConfiguration(actions: contextualActions)
+        configuration.performsFirstActionWithFullSwipe = item.deleteAction != nil
+        return configuration
+    }
+    
+    // MARK: UITableViewDataSource
+    public func tableView(_ tableView: UITableView,
+                          cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        
+        let cell = tableView.dequeueReusableCell(withIdentifier: CELL_IDENTIFIER,
+                                                 for: indexPath) as! TableItemViewHolderCell<ItemView>
+        
+        if let hostingViewController = cache.getHolderForItem(at: indexPath.row) {
+            cell.attach(hosting: hostingViewController,
+                        withParent: self)
+        }
+        
+        return cell
+    }
+    
+    public func tableView(_ tableView: UITableView,
+                          numberOfRowsInSection section: Int) -> Int {
+        
+        cache.items.count
+    }
+    
+    // MARK: - TableScrollResolvable
+    func scrollTo(index: Int, position: TableScrollResolverPosition) {
+        let tableViewScrollPosition: UITableView.ScrollPosition = {
+            switch position {
+            case .top:
+                return .top
+            case .middle:
+                return .middle
+            case .bottom:
+                return .bottom
+            }
+        }()
+        tableView?.scrollToRow(at: IndexPath(row: index, section: .zero),
+                               at: tableViewScrollPosition,
+                               animated: true)
+    }
+    
+    func scrollToOffset(_ offset: CGPoint) {
+        tableView?.setContentOffset(offset,
+                                    animated: true)
+    }
+    
+    // MARK: - Private methods
+    private func createTableView() {
+        tableView = UITableView(frame: view.bounds)
+        tableView.separatorStyle = .none
+        tableView.delegate = self
+        tableView.dataSource = self
+        
+        tableView.register(TableItemViewHolderCell<ItemView>.self,
+                           forCellReuseIdentifier: CELL_IDENTIFIER)
+        
+        tableView.willMove(toSuperview: view)
+        view.addSubview(tableView)
+        tableView.didMoveToSuperview()
+    }
+    
+    private func layoutCells() {
+        tableView?.beginUpdates()
+        tableView?.setNeedsLayout()
+        tableView?.endUpdates()
+    }
+    
+    private func createContextualAction(indexPath: IndexPath,
+                                        item: Item,
+                                        itemAction: TableItemAction) -> UIContextualAction {
+        
+        let contextualAction = UIContextualAction(style: .normal,
+                                                  title: itemAction.title,
+                                                  handler: { [weak self] _, _, completion in
+            self?.onActionUsed(indexPath, item, itemAction)
+            completion(true)
+        })
+        contextualAction.backgroundColor = itemAction.color
+        contextualAction.image = itemAction.image
+        return contextualAction
+    }
+    
+}
