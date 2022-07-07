@@ -2,10 +2,10 @@ import UIKit
 
 public class TableItemAction {
     
-    let title: String
-    let image: UIImage?
-    let color: UIColor?
-    private(set) var isDeleteAction: Bool = false
+    public let title: String
+    public let image: UIImage?
+    public let color: UIColor?
+    public private(set) var isDeleteAction: Bool = false
     
     public init(title: String,
                 image: UIImage? = nil,
