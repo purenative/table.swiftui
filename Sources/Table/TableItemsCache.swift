@@ -3,7 +3,7 @@ import SwiftUI
 
 typealias TableUpdate = (insertions: [Int], deletions: [Int])
 
-final class TableItemsCache<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: TableItemViewHolderDelegate where Builder.Item == Item {
+final class TableItemsCache<Item: TableItem, Builder: TableItemViewBuilder>: TableItemViewHolderDelegate where Builder.Item == Item {
     
     private let builder: Builder
     

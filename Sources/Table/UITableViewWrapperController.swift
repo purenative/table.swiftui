@@ -1,7 +1,7 @@
 import UIKit
 import SwiftUI
 
-public final class UITableViewWrapperController<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable where Builder.Item == Item {
+public final class UITableViewWrapperController<Item: TableItem, Builder: TableItemViewBuilder>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable where Builder.Item == Item {
     
     private let CELL_IDENTIFIER = "UITableViewWrapperItemCell"
     
@@ -9,7 +9,7 @@ public final class UITableViewWrapperController<Item: TableItem, ItemView: View,
     
     private var tableView: UITableView!
     
-    private let cache: TableItemsCache<Item, ItemView, Builder>
+    private let cache: TableItemsCache<Item, Builder>
     
     init(builder: Builder,
          onActionUsed: @escaping (IndexPath, Item, TableItemAction) -> Void) {
@@ -172,7 +172,7 @@ public final class UITableViewWrapperController<Item: TableItem, ItemView: View,
         tableView.delegate = self
         tableView.dataSource = self
         
-        tableView.register(TableItemViewHolderCell<ItemView>.self,
+        tableView.register(TableItemViewHolderCell<AnyView>.self,
                            forCellReuseIdentifier: CELL_IDENTIFIER)
         
         tableView.willMove(toSuperview: view)

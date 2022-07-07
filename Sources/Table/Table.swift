@@ -1,6 +1,6 @@
 import SwiftUI
 
-public struct Table<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: UIViewControllerRepresentable where Builder.Item == Item {
+public struct Table<Item: TableItem, Builder: TableItemViewBuilder>: UIViewControllerRepresentable where Builder.Item == Item {
     
     private let scrollResolver: TableScrollResolver?
     
@@ -22,8 +22,8 @@ public struct Table<Item: TableItem, ItemView: View, Builder: TableItemViewBuild
         self.onActionUsed = onActionUsed
     }
     
-    public func makeUIViewController(context: Context) -> UITableViewWrapperController<Item, ItemView, Builder> {
-        let controller = UITableViewWrapperController<Item, ItemView, Builder>(builder: builder) { indexPath, item, action in
+    public func makeUIViewController(context: Context) -> UITableViewWrapperController<Item, Builder> {
+        let controller = UITableViewWrapperController<Item, Builder>(builder: builder) { indexPath, item, action in
             onActionUsed?(indexPath, item, action)
         }
         
@@ -32,7 +32,7 @@ public struct Table<Item: TableItem, ItemView: View, Builder: TableItemViewBuild
         return controller
     }
     
-    public func updateUIViewController(_ controller: UITableViewWrapperController<Item, ItemView, Builder>,
+    public func updateUIViewController(_ controller: UITableViewWrapperController<Item, Builder>,
                                 context: Context) {
         
         controller.setItems(items)
