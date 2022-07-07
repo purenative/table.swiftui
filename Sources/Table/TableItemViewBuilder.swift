@@ -1,6 +1,6 @@
 import SwiftUI
 
-protocol TableItemViewBuilder {
+public protocol TableItemViewBuilder {
     
     associatedtype Item
     
