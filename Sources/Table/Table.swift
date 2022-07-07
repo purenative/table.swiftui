@@ -1,29 +1,29 @@
 import SwiftUI
 
-public struct Table<Item: TableItem, ItemView: View>: UIViewControllerRepresentable {
+public struct Table<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: UIViewControllerRepresentable where Builder.Item == Item {
     
     private let scrollResolver: TableScrollResolver?
     
     @Binding
     var items: [Item]
     
-    let itemViewBuilder: (Item) -> ItemView
+    let builder: Builder
     
     var onActionUsed: ((IndexPath, Item, TableItemAction) -> Void)? = nil
     
     public init(scrollResolver: TableScrollResolver? = nil,
                 items: Binding<[Item]>,
-                itemViewBuilder: @escaping (Item) -> ItemView,
+                builder: Builder,
                 onActionUsed: ((IndexPath, Item, TableItemAction) -> Void)? = nil) {
         
         self.scrollResolver = scrollResolver
         self._items = items
-        self.itemViewBuilder = itemViewBuilder
+        self.builder = builder
         self.onActionUsed = onActionUsed
     }
     
-    public func makeUIViewController(context: Context) -> UITableViewWrapperController<Item, ItemView> {
-        let controller = UITableViewWrapperController(itemViewBuilder: itemViewBuilder) { indexPath, item, action in
+    public func makeUIViewController(context: Context) -> UITableViewWrapperController<Item, ItemView, Builder> {
+        let controller = UITableViewWrapperController<Item, ItemView, Builder>(builder: builder) { indexPath, item, action in
             onActionUsed?(indexPath, item, action)
         }
         
@@ -32,7 +32,7 @@ public struct Table<Item: TableItem, ItemView: View>: UIViewControllerRepresenta
         return controller
     }
     
-    public func updateUIViewController(_ controller: UITableViewWrapperController<Item, ItemView>,
+    public func updateUIViewController(_ controller: UITableViewWrapperController<Item, ItemView, Builder>,
                                 context: Context) {
         
         controller.setItems(items)

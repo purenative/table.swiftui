@@ -3,13 +3,13 @@ import SwiftUI
 
 typealias TableUpdate = (insertions: [Int], deletions: [Int])
 
-final class TableItemsCache<Item: TableItem, ItemView: View>: TableItemViewHolderDelegate {
+final class TableItemsCache<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: TableItemViewHolderDelegate where Builder.Item == Item {
     
-    private let itemViewBuilder: (Item) -> ItemView
+    private let builder: Builder
     
     private(set) var items: [Item] = []
     private var cellHeights: [CGFloat?] = []
-    private var itemViewHolders: [TableItemViewHolder<ItemView>?] = []
+    private var itemViewHolders: [TableItemViewHolder<AnyView>?] = []
     
     var onContentSizeChanged: (() -> Void)?
     
@@ -17,8 +17,8 @@ final class TableItemsCache<Item: TableItem, ItemView: View>: TableItemViewHolde
         items.isEmpty
     }
     
-    init(itemViewBuilder: @escaping (Item) -> ItemView) {
-        self.itemViewBuilder = itemViewBuilder
+    init(builder: Builder) {
+        self.builder = builder
     }
     
     deinit {
@@ -66,13 +66,13 @@ final class TableItemsCache<Item: TableItem, ItemView: View>: TableItemViewHolde
         items[index]
     }
     
-    func getHolderForItem(at index: Int) -> TableItemViewHolder<ItemView>? {
+    func getHolderForItem(at index: Int) -> TableItemViewHolder<AnyView>? {
         if let holder = itemViewHolders[index] {
             holder.delegate = self
             return holder
         } else {
             let item = getItem(at: index)
-            let holder = TableItemViewHolder(rootView: itemViewBuilder(item))
+            let holder = TableItemViewHolder(rootView: builder.buildView(item))
             holder.delegate = self
             cellHeights[index] = holder.itemHeight
             itemViewHolders[index] = holder
@@ -91,7 +91,7 @@ final class TableItemsCache<Item: TableItem, ItemView: View>: TableItemViewHolde
         return UITableView.automaticDimension
     }
     
-    func recalculateHeightFor(holder: TableItemViewHolder<ItemView>) -> Bool {
+    func recalculateHeightFor(holder: TableItemViewHolder<AnyView>) -> Bool {
         if let index = itemViewHolders.firstIndex(of: holder), cellHeights[index] != holder.itemHeight {
             cellHeights[index] = holder.itemHeight
             print("New height for item at index \(index) is \(cellHeights[index] ?? UITableView.automaticDimension)")
@@ -103,7 +103,7 @@ final class TableItemsCache<Item: TableItem, ItemView: View>: TableItemViewHolde
     
     // MARK: TableItemViewHolderDelegate
     func tableItemViewHolderDidUpdateHeight(_ controller: UIViewController?) {
-        if let holder = controller as? TableItemViewHolder<ItemView> {
+        if let holder = controller as? TableItemViewHolder<AnyView> {
             if recalculateHeightFor(holder: holder) {
                 onContentSizeChanged?()
             }

@@ -1,7 +1,7 @@
 import UIKit
 import SwiftUI
 
-public final class UITableViewWrapperController<Item: TableItem, ItemView: View>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable {
+public final class UITableViewWrapperController<Item: TableItem, ItemView: View, Builder: TableItemViewBuilder>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable where Builder.Item == Item {
     
     private let CELL_IDENTIFIER = "UITableViewWrapperItemCell"
     
@@ -9,12 +9,12 @@ public final class UITableViewWrapperController<Item: TableItem, ItemView: View>
     
     private var tableView: UITableView!
     
-    private let cache: TableItemsCache<Item, ItemView>
+    private let cache: TableItemsCache<Item, ItemView, Builder>
     
-    init(itemViewBuilder: @escaping (Item) -> ItemView,
+    init(builder: Builder,
          onActionUsed: @escaping (IndexPath, Item, TableItemAction) -> Void) {
         
-        cache = TableItemsCache(itemViewBuilder: itemViewBuilder)
+        cache = TableItemsCache(builder: builder)
         
         self.onActionUsed = onActionUsed
         
@@ -127,7 +127,7 @@ public final class UITableViewWrapperController<Item: TableItem, ItemView: View>
                           cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
         let cell = tableView.dequeueReusableCell(withIdentifier: CELL_IDENTIFIER,
-                                                 for: indexPath) as! TableItemViewHolderCell<ItemView>
+                                                 for: indexPath) as! TableItemViewHolderCell<AnyView>
         
         if let hostingViewController = cache.getHolderForItem(at: indexPath.row) {
             cell.attach(hosting: hostingViewController,
