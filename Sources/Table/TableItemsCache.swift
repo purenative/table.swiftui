@@ -73,6 +73,7 @@ final class TableItemsCache<Item: TableItem, Builder: TableItemViewBuilder>: Tab
         } else {
             let item = getItem(at: index)
             let holder = TableItemViewHolder(rootView: builder.buildView(item))
+            holder.loadViewIfNeeded()
             holder.delegate = self
             cellHeights[index] = holder.itemHeight
             itemViewHolders[index] = holder

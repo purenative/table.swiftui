@@ -1,7 +1,7 @@
 import UIKit
 import SwiftUI
 
-public final class UITableViewWrapperController<Item: TableItem, Builder: TableItemViewBuilder>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable where Builder.Item == Item {
+public final class UITableViewWrapperController<Item: TableItem, Builder: TableItemViewBuilder>: UIViewController, UITableViewDelegate, UITableViewDataSource, TableScrollResolvable, TableSwipeActionsDismissable where Builder.Item == Item {
     
     private let CELL_IDENTIFIER = "UITableViewWrapperItemCell"
     
@@ -10,6 +10,12 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     private var tableView: UITableView!
     
     private let cache: TableItemsCache<Item, Builder>
+    
+    private var tableHeightObservation: NSKeyValueObservation?
+    
+    private(set) var swipeActionOpened: Bool = false
+
+    var onTableHeightChanged: ((CGFloat) -> Void)? = nil
     
     init(builder: Builder,
          onActionUsed: @escaping (IndexPath, Item, TableItemAction) -> Void) {
@@ -30,6 +36,12 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     
     required init?(coder: NSCoder) {
         fatalError("init(coder:) has not been implemented")
+    }
+    
+    public override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        
+        tableView.frame = view.bounds
     }
     
     func setItems(_ items: [Item]) {
@@ -54,17 +66,11 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
             
             tableView.performBatchUpdates {
                 tableView.deleteRows(at: deletedIndexPaths,
-                                     with: .middle)
+                                     with: .fade)
                 tableView.insertRows(at: insertedIndexPaths,
-                                     with: .middle)
+                                     with: .fade)
             }
         }
-    }
-    
-    public override func viewDidLayoutSubviews() {
-        super.viewDidLayoutSubviews()
-        
-        tableView?.frame = view.bounds
     }
     
     // MARK: UITableViewDelegate
@@ -79,6 +85,7 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     
     public func tableView(_ tableView: UITableView,
                           leadingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        swipeActionOpened = true
         
         let item = cache.getItem(at: indexPath.row)
         
@@ -98,6 +105,8 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     
     public func tableView(_ tableView: UITableView,
                           trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        swipeActionOpened = true
+        
         let item = cache.getItem(at: indexPath.row)
         
         var contextualActions = [UIContextualAction]()
@@ -165,10 +174,23 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
                                     animated: true)
     }
     
+    // MARK: - TableSwipeActionsDismissable
+    func dismissOpenedSwipeActions() {
+        if swipeActionOpened {
+            #if DEBUG
+            print("DISMISSED")
+            #endif
+            swipeActionOpened = false
+            tableView?.isEditing = true
+            tableView?.isEditing = false
+        }
+    }
+    
     // MARK: - Private methods
     private func createTableView() {
         tableView = UITableView(frame: view.bounds)
         tableView.separatorStyle = .none
+        tableView.isScrollEnabled = false
         tableView.delegate = self
         tableView.dataSource = self
         
@@ -178,12 +200,18 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         tableView.willMove(toSuperview: view)
         view.addSubview(tableView)
         tableView.didMoveToSuperview()
+        
+        tableHeightObservation = tableView.observe(\.contentSize, changeHandler: { [weak self] tableView, _ in
+            DispatchQueue.main.async {
+                self?.onTableHeightChanged?(tableView.contentSize.height)
+            }
+        })
     }
     
     private func layoutCells() {
-        tableView?.beginUpdates()
-        tableView?.setNeedsLayout()
-        tableView?.endUpdates()
+        tableView.beginUpdates()
+        tableView.setNeedsLayout()
+        tableView.endUpdates()
     }
     
     private func createContextualAction(indexPath: IndexPath,

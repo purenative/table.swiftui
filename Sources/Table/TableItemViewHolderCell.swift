@@ -12,6 +12,8 @@ final class TableItemViewHolderCell<Content: View>: UITableViewCell {
     func attach(hosting: TableItemViewHolder<Content>,
                 withParent parent: UIViewController) {
         
+        contentView.clipsToBounds = true
+        
         detach()
                 
         self.hosting = hosting
