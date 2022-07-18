@@ -193,6 +193,8 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         tableView.isScrollEnabled = false
         tableView.delegate = self
         tableView.dataSource = self
+        tableView.contentInsetAdjustmentBehavior = .never
+        tableView.insetsContentViewsToSafeArea = false
         
         tableView.register(TableItemViewHolderCell<AnyView>.self,
                            forCellReuseIdentifier: CELL_IDENTIFIER)
@@ -201,7 +203,10 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         view.addSubview(tableView)
         tableView.didMoveToSuperview()
         
-        tableHeightObservation = tableView.observe(\.contentSize, changeHandler: { [weak self] tableView, _ in
+        tableHeightObservation = tableView.observe(\.contentSize, options: .new, changeHandler: { [weak self] tableView, newValue in
+            print("HEIGHT:", tableView.contentSize.height)
+            print("HEIGHT OLD VALUE :", newValue.oldValue)
+            print("HEIGHT NEW VALUE:", newValue.newValue)
             DispatchQueue.main.async {
                 self?.onTableHeightChanged?(tableView.contentSize.height)
             }

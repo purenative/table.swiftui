@@ -1,6 +1,10 @@
 import SwiftUI
 import UIKit
 
+private final class _TableItemViewHolderView<Content: View>: _UIHostingView<Content> {
+    
+}
+
 final class TableItemViewHolder<Content: View>: UIHostingController<Content> {
     
     weak var delegate: TableItemViewHolderDelegate?
@@ -16,6 +20,10 @@ final class TableItemViewHolder<Content: View>: UIHostingController<Content> {
         view?.willMove(toSuperview: nil)
         view?.removeFromSuperview()
         view?.didMoveToSuperview()
+    }
+    
+    override func loadView() {
+        view = _TableItemViewHolderView(rootView: rootView)
     }
     
     override func viewDidLoad() {
