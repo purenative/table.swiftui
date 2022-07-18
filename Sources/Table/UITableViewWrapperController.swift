@@ -52,11 +52,6 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         } else if let tableView = tableView {
             let (insertedIndecies, deletedIndecies) = cache.updateWith(newItems: items)
             
-            #if DEBUG
-            print("Deletions", deletedIndecies)
-            print("Insertions", insertedIndecies)
-            #endif
-            
             let deletedIndexPaths = deletedIndecies.map {
                 IndexPath(row: $0, section: .zero)
             }
@@ -177,9 +172,6 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     // MARK: - TableSwipeActionsDismissable
     func dismissOpenedSwipeActions() {
         if swipeActionOpened {
-            #if DEBUG
-            print("DISMISSED")
-            #endif
             swipeActionOpened = false
             tableView?.isEditing = true
             tableView?.isEditing = false
@@ -204,9 +196,6 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         tableView.didMoveToSuperview()
         
         tableHeightObservation = tableView.observe(\.contentSize, options: .new, changeHandler: { [weak self] tableView, newValue in
-            print("HEIGHT:", tableView.contentSize.height)
-            print("HEIGHT OLD VALUE :", newValue.oldValue)
-            print("HEIGHT NEW VALUE:", newValue.newValue)
             DispatchQueue.main.async {
                 self?.onTableHeightChanged?(tableView.contentSize.height)
             }

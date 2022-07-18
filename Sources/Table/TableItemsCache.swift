@@ -95,7 +95,6 @@ final class TableItemsCache<Item: TableItem, Builder: TableItemViewBuilder>: Tab
     func recalculateHeightFor(holder: TableItemViewHolder<AnyView>) -> Bool {
         if let index = itemViewHolders.firstIndex(of: holder), cellHeights[index] != holder.itemHeight {
             cellHeights[index] = holder.itemHeight
-            print("New height for item at index \(index) is \(cellHeights[index] ?? UITableView.automaticDimension)")
             return true
         }
         
