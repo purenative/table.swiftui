@@ -45,27 +45,39 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
     }
     
     func setItems(_ items: [Item]) {
-        
-        if cache.noItems {
+        guard cache.isNeedToUpdate(withItems: items) else {
+            return
+        }
+//        if cache.noItems {
             cache.set(items)
-            tableView?.reloadData()
-        } else if let tableView = tableView {
-            let (insertedIndecies, deletedIndecies) = cache.updateWith(newItems: items)
-            
-            let deletedIndexPaths = deletedIndecies.map {
-                IndexPath(row: $0, section: .zero)
-            }
-            let insertedIndexPaths = insertedIndecies.map {
-                IndexPath(row: $0, section: .zero)
-            }
+//            tableView?.reloadData()
+//        } else if let tableView = tableView {
+//            let (insertedIndecies, deletedIndecies) = cache.updateWith(newItems: items)
+//
+//            let deletedIndexPaths = deletedIndecies.map {
+//                IndexPath(row: $0, section: .zero)
+//            }
+//            let insertedIndexPaths = insertedIndecies.map {
+//                IndexPath(row: $0, section: .zero)
+//            }
+//            let updatedIndexPaths = stride(from: 0, to: items.count - deletedIndexPaths.count + insertedIndexPaths.count, by: 1)
+//                .compactMap { index -> IndexPath? in
+//                    if insertedIndecies.contains(index) {
+//                        return nil
+//                    }
+//                    return IndexPath(row: index, section: .zero)
+//                }
             
             tableView.performBatchUpdates {
-                tableView.deleteRows(at: deletedIndexPaths,
-                                     with: .fade)
-                tableView.insertRows(at: insertedIndexPaths,
-                                     with: .fade)
+//                tableView.deleteRows(at: deletedIndexPaths,
+//                                     with: .fade)
+                tableView.reloadSections([0], with: .automatic)
+//                tableView.insertRows(at: insertedIndexPaths,
+//                                     with: .fade)
+//                tableView.reloadRows(at: updatedIndexPaths,
+//                                     with: .fade)
             }
-        }
+//        }
     }
     
     // MARK: UITableViewDelegate

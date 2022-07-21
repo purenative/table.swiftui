@@ -25,6 +25,18 @@ final class TableItemsCache<Item: TableItem, Builder: TableItemViewBuilder>: Tab
         onContentSizeChanged = nil
     }
     
+    func isNeedToUpdate(withItems items: [Item]) -> Bool {
+        guard self.items.count == items.count else {
+            return true
+        }
+        for index in 0..<items.count {
+            if items[index].hashValue != self.items[index].hashValue {
+                return true
+            }
+        }
+        return false
+    }
+    
     func set(_ items: [Item]) {
         self.items.removeAll()
         self.items = items
