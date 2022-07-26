@@ -48,7 +48,7 @@ public final class UITableViewWrapperController<Item: TableItem, Builder: TableI
         guard cache.isNeedToUpdate(withItems: items) else {
             return
         }
-        let isReload = items.count == cache.items.count
+        let isReload = (items.isEmpty && cache.items.isEmpty) || items.count == cache.items.count
         
         cache.set(items)
         
