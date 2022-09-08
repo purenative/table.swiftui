@@ -14,7 +14,9 @@ final class TableItemViewHolderCell<Content: View>: UITableViewCell {
         
         contentView.clipsToBounds = true
         
-        detach()
+        guard self.hosting !== hosting else {
+            return
+        }
                 
         self.hosting = hosting
         
